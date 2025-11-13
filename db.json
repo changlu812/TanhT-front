@@ -1,0 +1,45 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "mockuser",
+      "password": "123456",
+      "nickname": "Mock",
+      "email": "mock@qq.com",
+      "userPic": "/favicon.ico"
+    }
+  ],
+  "category": [
+    {
+      "id": 1762261512016,
+      "categoryName": "2",
+      "categoryAlias": "2"
+    },
+    {
+      "id": 1762266039371,
+      "categoryName": "3",
+      "categoryAlias": "3"
+    }
+  ],
+  "article": [
+    {
+      "id": 1762266069385,
+      "createTime": "2025-11-04T14:21:09.385Z",
+      "title": "测试",
+      "categoryId": 1762261512016,
+      "coverImg": "",
+      "content": "<h1><u>123</u><span class=\"ql-cursor\">﻿﻿</span></h1>",
+      "state": "已发布",
+      "categoryName": "2"
+    },
+    {
+      "id": 1762938421667,
+      "createTime": "2025-11-12T09:07:01.667Z",
+      "title": "今天吃什么",
+      "categoryId": 1762266039371,
+      "coverImg": "",
+      "content": "<p>乌冬面</p>",
+      "state": "已发布"
+    }
+  ]
+}
