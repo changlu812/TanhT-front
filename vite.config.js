@@ -13,7 +13,6 @@ export default defineConfig({
     },
   },
   server: {
-    //配置代理
     proxy: {
       "/api": {
         target: "http://localhost:3001",
@@ -21,5 +20,14 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
+    //配置静态文件服务
+    fs: {
+      allow: [".."], // 允许访问上级目录
+    },
+  },
+  //配置public目录
+  publicDir: "public",
+  build: {
+    assetsDir: "assets",
   },
 });

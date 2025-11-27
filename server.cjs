@@ -27,10 +27,7 @@ server.use(
     },
   })
 );
-server.use((req, res, next) => {
-  console.log(`[mock] ${req.method} ${req.url}`, req.body || req.query);
-  next();
-});
+
 // 全局异常日志
 process.on("uncaughtException", (err) => {
   console.error("[uncaughtException]", err && err.stack ? err.stack : err);
@@ -138,6 +135,52 @@ server.put("/user/update", (req, res) => {
     return res
       .status(500)
       .json({ code: 500, data: null, message: "mock error" });
+  }
+});
+
+// // 添加日志
+// console.log("[mock] 数据库中的所有用户:", router.db.get("users").value());
+// console.log("[mock] 要查找的用户名:", username);
+// console.log("[mock] 查找条件:", { username: username });
+
+server.patch("/user/updateAvatar", (req, res) => {
+  try {
+    // 解析avatarUrl（您的原有逻辑）
+    let avatarUrl = req.body?.avatarUrl;
+    if (!avatarUrl && req.rawBody) {
+      const params = new URLSearchParams(req.rawBody);
+      avatarUrl = params.get("avatarUrl");
+    }
+
+    if (!avatarUrl)
+      return res.status(400).json({ code: 1, message: "缺少参数" });
+
+    const auth = req.headers.authorization || "";
+    const username = auth.startsWith("mock-token-")
+      ? auth.replace("mock-token-", "")
+      : null;
+    if (!username)
+      return res.status(401).json({ code: 401, message: "未登录" });
+
+    // 直接操作数据库文件
+    const fs = require("fs");
+    const db = JSON.parse(fs.readFileSync("./db.json", "utf8"));
+
+    const userIndex = db.users.findIndex((u) => u.username === username);
+    if (userIndex === -1)
+      return res.status(404).json({ code: 404, message: "用户不存在" });
+
+    // 更新数据
+    db.users[userIndex].userPic = avatarUrl;
+
+    // 写入文件
+    fs.writeFileSync("./db.json", JSON.stringify(db, null, 2));
+    console.log(`[mock] 用户 ${username} 头像更新为: ${avatarUrl}`);
+
+    return res.json({ code: 0, message: "头像更新成功" });
+  } catch (err) {
+    console.error("[mock] 错误:", err);
+    return res.status(500).json({ code: 500, message: "服务器错误" });
   }
 });
 
@@ -304,12 +347,19 @@ server.delete("/article", (req, res) => {
   }
 });
 
-// 模拟上传
 server.post("/upload", (req, res) => {
+  console.log("[mock] 图片上传接口被调用");
+
+  // 生成符合实际业务逻辑的URL（便于联调）
+  const timestamp = Date.now();
+  const avatarUrl = `/uploads/avatar_${timestamp}.jpg`; // 符合RESTful规范
+
+  console.log("[mock] 生成头像URL:", avatarUrl);
+
   return res.json({
     code: 0,
-    data: "/favicon.ico",
-    message: "上传成功（mock）",
+    data: avatarUrl,
+    message: "上传成功",
   });
 });
 

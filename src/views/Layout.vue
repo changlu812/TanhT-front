@@ -69,7 +69,7 @@ const handleCommand = (command) => {
     <el-aside width="200px">
       <div class="el-aside__logo"></div>
       <el-menu
-        active-text-color="#ffd04b"
+        active-text-color="#5AA4A9"
         background-color="#232323"
         text-color="#fff"
         router
@@ -86,7 +86,7 @@ const handleCommand = (command) => {
           </el-icon>
           <span>文章管理</span>
         </el-menu-item>
-        <el-sub-menu>
+        <el-sub-menu index="user-center">
           <template #title>
             <el-icon>
               <UserFilled />
@@ -176,7 +176,7 @@ const handleCommand = (command) => {
 
     &__logo {
       height: 120px;
-      background: url("@/assets/logo.png") no-repeat center / 120px auto;
+      background: url("@/assets/team_logo.png") no-repeat center / 120px auto;
     }
 
     .el-menu {
