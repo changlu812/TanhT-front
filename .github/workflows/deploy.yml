@@ -1,44 +1,34 @@
 name: Deploy to GitHub Pages
 
 on:
-  # 当推送到main/master分支时触发（看你的主分支名）
   push:
     branches: [main]
-  # 也可以手动触发
-  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      # 1. 拉取代码
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: false
 
-      # 2. 安装Node.js（指定版本，比如18/20，和本地一致）
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm" # 缓存npm依赖，加速构建
+          cache: "npm"
 
-      # 3. 安装依赖
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      # 4. 构建项目
       - name: Build project
-        run: npm run build # 对应package.json里的build命令（vite build）
+        run: npm run build
 
-      # 5. 部署到gh-pages分支
-      - name: Deploy to GitHub Pages
+      - name: Deploy to gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # 部署的文件夹（Vite构建后的dist）
-          folder: dist
-          # 部署到的分支
           branch: gh-pages
-          # 提交信息
-          commit-message: "Deploy: Build from main branch"
+          folder: dist
+          clean: true
+          force: true
