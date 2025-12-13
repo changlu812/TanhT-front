@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "preview": "vite preview",
     "mock": "node server.cjs",
     "dev:with-mock": "concurrently \"npm run mock\" \"npm run dev\""
@@ -25,9 +27,11 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^6.0.1",
     "concurrently": "^9.2.1",
+    "gh-pages": "^6.3.0",
     "json-server": "^0.17.1",
     "sass": "^1.90.0",
     "vite": "^7.0.6",
     "vite-plugin-vue-devtools": "^8.0.0"
-  }
+  },
+  "homepage": "https://changlu812.github.io/TanhT-front/"
 }
