@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     // 关键：生产环境用相对路径
-    base: isProduction ? "./" : "/",
+    base: "/TanhT-front/",
 
     plugins: [vue(), vueDevTools()],
     resolve: {
