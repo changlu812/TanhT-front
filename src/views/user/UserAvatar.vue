@@ -3,6 +3,7 @@ import { Plus, Upload } from "@element-plus/icons-vue";
 import { ref } from "vue";
 import { ElMessage } from "element-plus";
 import avatar from "@/assets/default.png";
+import { request } from "@/utils/request";
 const uploadRef = ref();
 const file = ref(null);
 /* 回显头像 */
@@ -148,6 +149,29 @@ const isValidUrl = (url) => {
 
 //修改头像
 import { userAvatarUpdateService } from "@/api/user.js";
+// 使用自定义上传函数，避免浏览器直接请求后台（GitHub Pages 无后端）
+const customUpload = async (option) => {
+  try {
+    const form = new FormData();
+    form.append("file", option.file);
+
+    const res = await request("/api/upload", {
+      method: "POST",
+      body: form,
+      headers: { Authorization: tokenStore.token },
+    });
+
+    // el-upload 期待 onSuccess/onError 回调
+    option.onSuccess && option.onSuccess(res);
+
+    // 复用组件内部的上传成功处理
+    uploadSuccess(res);
+  } catch (err) {
+    option.onError && option.onError(err);
+    console.error("custom upload error", err);
+  }
+};
+
 const uploadAvatar = async () => {
   // 检查是否选择了文件
   if (!file.value) {
@@ -155,16 +179,8 @@ const uploadAvatar = async () => {
     return;
   }
 
-  try {
-    // 先触发文件上传（自动上传设为false时需手动触发）
-    uploadRef.value.submit();
-
-    // 注意：这里需要等待上传成功后再调用更新头像接口
-    // 但uploadSuccess回调会处理这个逻辑
-  } catch (error) {
-    console.error("上传出错：", error);
-    ElMessage.error("上传失败");
-  }
+  // 直接调用自定义上传，避免依赖浏览器 action
+  await customUpload({ file: file.value.raw, onSuccess: () => {} });
 };
 
 //更新用户头像信息
@@ -224,12 +240,10 @@ const handleChange = (uploadFile) => {
           ref="uploadRef"
           class="avatar-uploader"
           :show-file-list="false"
-          action="/api/upload"
+          :http-request="customUpload"
           :before-upload="beforeUpload"
           :auto-upload="false"
-          :headers="uploadHeaders"
           :on-change="handleChange"
-          :on-success="uploadSuccess"
         >
           <img v-if="imgUrl" :src="imgUrl" class="avatar" />
           <img v-else :src="avatar" width="278" />

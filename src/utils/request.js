@@ -1,101 +1,160 @@
-//定制请求的实例
+// src/api/request.js
+import { mockFetch } from "@/utils/mockAdapter";
 
-//导入axios  npm install axios
-import axios from "axios";
-import { ElMessage } from "element-plus";
+// 请求基础配置
+const baseConfig = {
+  headers: {
+    "Content-Type": "application/json",
+  },
+  credentials: "include",
+};
 
-/* 在这里不能这样导入 useRouter */
-// import { useRouter } from 'vue-router'
-// const router = useRouter();
+// 处理响应
+const handleResponse = async (response) => {
+  if (response.status === 401) {
+    // 未授权处理
+    window.location.href = "/login";
+    return Promise.reject(new Error("未授权"));
+  }
 
-//定义一个变量,记录公共的前缀  ,  baseURL
-// const baseURL = 'http://localhost:8080';
-const baseURL = "/api";
+  // 对于 401 之外的情况，尝试解析返回的 JSON
+  try {
+    const data = await response.json();
+    return data;
+  } catch (e) {
+    // 处理 204/304/无返回体等情况，返回一个标准化空响应，避免调用处报错
+    return {
+      code: 0,
+      data: null,
+      message: response.statusText || "no content",
+    };
+  }
+};
 
-const instance = axios.create({ baseURL });
+// 主请求函数
+export const request = async (url, options = {}) => {
+  const isProduction = import.meta.env.PROD;
+  const config = {
+    ...baseConfig,
+    ...options,
+    headers: {
+      ...baseConfig.headers,
+      ...options.headers,
+    },
+  };
 
-/* 添加响应拦截器 */
-import router from "@/router";
-instance.interceptors.response.use(
-  // 成功响应处理：兼容后端约定 {code, data, message} 与 json-server 风格（直接返回资源 + X-Total-Count）
-  (response) => {
-    const raw = response.data;
+  // 对于 GET 请求，默认禁用浏览器缓存，确保列表等请求能够实时获取到后端最新数据
+  try {
+    const method = (config.method || "GET").toUpperCase();
+    if (method === "GET") {
+      config.cache = config.cache || "no-store";
+    }
+  } catch (e) {
+    // 忽略错误
+  }
 
-    // 如果返回已经是约定结构 { code, data, message }
-    if (
-      raw &&
-      typeof raw === "object" &&
-      Object.prototype.hasOwnProperty.call(raw, "code")
-    ) {
-      if (raw.code === 0) {
-        ElMessage.success(raw.message ? raw.message : "操作成功啦");
-        return raw;
-      } else {
-        ElMessage.error(raw.message ? raw.message : "操作失败了");
-        return Promise.reject(raw); // 保持原有行为：reject 原始结构
+  // 当 body 为 FormData 时，移除默认的 Content-Type，让浏览器自动设置 multipart/form-data 和 boundary
+  try {
+    if (typeof FormData !== "undefined" && config.body instanceof FormData) {
+      if (config.headers && config.headers["Content-Type"]) {
+        delete config.headers["Content-Type"];
       }
     }
-
-    // 否则把 json-server 的响应包装成约定结构
-    const wrapped = {
-      code: 0,
-      data: raw,
-      message: "ok",
-    };
-
-    // 支持 json-server 分页头 X-Total-Count -> 包装为 { items, total }
-    const total =
-      response.headers &&
-      (response.headers["x-total-count"] || response.headers["X-Total-Count"]);
-    if (total != null) {
-      wrapped.data = {
-        items: Array.isArray(raw) ? raw : [],
-        total: parseInt(total, 10),
-      };
+    // 当 body 为 URLSearchParams 时，设置为 application/x-www-form-urlencoded
+    if (
+      typeof URLSearchParams !== "undefined" &&
+      config.body instanceof URLSearchParams
+    ) {
+      config.headers = config.headers || {};
+      config.headers["Content-Type"] =
+        "application/x-www-form-urlencoded;charset=UTF-8";
     }
-
-    ElMessage.success("操作成功");
-    return wrapped;
-  },
-  // 失败响应处理：统一成 {code, data, message} 的 reject，便于上层统一处理
-  (err) => {
-    const status = err?.response?.status;
-
-    if (status === 401) {
-      ElMessage.error("请先登录！");
-      router.push("/login");
-      return Promise.reject({ code: 401, data: null, message: "未登录" });
-    } else {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.statusText ||
-        err.message ||
-        "服务异常";
-      ElMessage.error(msg);
-      return Promise.reject({ code: status || 500, data: null, message: msg });
-    }
+  } catch (e) {
+    // 在某些环境下 FormData 可能不可用，忽略错误
   }
-);
 
-/* 添加请求拦截器 */
-//导入token状态
-import { useTokenStore } from "@/stores/token.js";
-//添加请求拦截器
-instance.interceptors.request.use(
-  (config) => {
-    //在发送请求之前做什么
-    let tokenStore = useTokenStore();
-    console.log("请求拦截器里面的token:", tokenStore.token);
-    //如果token中有值，在携带
-    if (tokenStore.token) {
-      config.headers.Authorization = tokenStore.token;
-    }
-    return config;
-  },
-  (err) => {
-    //如果请求错误做什么
-    Promise.reject(err);
+  // 生产环境使用 Mock
+  if (isProduction) {
+    const mockResponse = await mockFetch(url, config);
+    return handleResponse(mockResponse);
   }
-);
 
-export default instance;
+  // 开发环境使用真实请求
+  const response = await fetch(url, config);
+  return handleResponse(response);
+};
+
+// GET 请求
+export const get = (url, params = {}, options = {}) => {
+  const queryString = new URLSearchParams(params).toString();
+  const urlWithParams = queryString ? `${url}?${queryString}` : url;
+  return request(urlWithParams, { ...options, method: "GET" });
+};
+
+// POST 请求
+export const post = (url, data = {}, options = {}) => {
+  const body =
+    data instanceof FormData ||
+    (typeof URLSearchParams !== "undefined" &&
+      data instanceof URLSearchParams) ||
+    typeof data === "string"
+      ? data
+      : JSON.stringify(data);
+
+  return request(url, {
+    ...options,
+    method: "POST",
+    body,
+  });
+};
+
+// PUT 请求
+export const put = (url, data = {}, options = {}) => {
+  const body =
+    data instanceof FormData ||
+    (typeof URLSearchParams !== "undefined" &&
+      data instanceof URLSearchParams) ||
+    typeof data === "string"
+      ? data
+      : JSON.stringify(data);
+
+  return request(url, {
+    ...options,
+    method: "PUT",
+    body,
+  });
+};
+
+// DELETE 请求
+export const del = (url, data = {}, options = {}) => {
+  const body =
+    data instanceof FormData ||
+    (typeof URLSearchParams !== "undefined" &&
+      data instanceof URLSearchParams) ||
+    typeof data === "string"
+      ? data
+      : JSON.stringify(data);
+
+  return request(url, {
+    ...options,
+    method: "DELETE",
+    body,
+  });
+};
+
+// PATCH 请求
+export const patch = (url, data = {}, options = {}) => {
+  const body =
+    data instanceof FormData ||
+    (typeof URLSearchParams !== "undefined" &&
+      data instanceof URLSearchParams) ||
+    typeof data === "string"
+      ? data
+      : JSON.stringify(data);
+
+  return request(url, {
+    ...options,
+    method: "PATCH",
+    body,
+  });
+};

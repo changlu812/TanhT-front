@@ -16,10 +16,9 @@ const app = createApp(App);
 const pinia = createPinia();
 const persist = createPersistedState();
 
-app.use(router);
 /* 持久化插件 */
 pinia.use(persist);
-// app.use(router)
 app.use(pinia);
-app.mount("#app");
+app.use(router);
 app.use(ElementPlus, { locale });
+app.mount("#app");

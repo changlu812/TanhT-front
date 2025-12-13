@@ -1,33 +1,40 @@
+// vite.config.js
 import { fileURLToPath, URL } from "node:url";
-
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
 
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [vue(), vueDevTools()],
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
-  server: {
-    proxy: {
-      "/api": {
-        target: "http://localhost:3001",
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ""),
+export default defineConfig(({ mode }) => {
+  const isProduction = mode === "production";
+
+  return {
+    // 关键：生产环境用相对路径
+    base: isProduction ? "./" : "/",
+
+    plugins: [vue(), vueDevTools()],
+    resolve: {
+      alias: {
+        "@": fileURLToPath(new URL("./src", import.meta.url)),
       },
     },
-    //配置静态文件服务
-    fs: {
-      allow: [".."], // 允许访问上级目录
+    server: {
+      proxy: !isProduction
+        ? {
+            "/api": {
+              target: "http://localhost:3001", // 仅开发环境代理到 Mock 服务器
+              changeOrigin: true,
+              rewrite: (path) => path.replace(/^\/api/, ""),
+            },
+          }
+        : undefined,
+      fs: {
+        allow: [".."],
+      },
     },
-  },
-  //配置public目录
-  publicDir: "public",
-  build: {
-    assetsDir: "assets",
-  },
+    publicDir: "public",
+    build: {
+      assetsDir: "assets",
+      outDir: "dist",
+    },
+  };
 });

@@ -1,40 +1,40 @@
-import request from "@/utils/request.js";
+import { get, post, put, del } from "@/utils/request.js";
 
-/* 文章分类相关 */
+/* 文章分类相关（与 mock server 保持一致） */
 export const articleCategoryListService = () => {
-  return request.get("/category");
+  return get("/api/category");
 };
 
 export const articleCategoryAddService = (data) => {
-  return request.post("/category", data);
+  return post("/api/category", data);
 };
 
 export const articleCategoryUpdateService = (data) => {
-  return request.put("/category", data);
+  return put("/api/category", data);
 };
 
-// 使用 params 传 id，axios 会把它放在查询字符串里，兼容后端 DELETE /category?id=...
+// 使用查询参数传 id，兼容 mock 的 DELETE /category?id=...
 export const articleCategoryDeleteService = (id) => {
-  return request.delete("/category", { params: { id } });
+  return del(`/api/category?id=${id}`);
 };
 
-/* 文章管理相关 */
-//文章列表查询
+/* 文章管理相关（与 mock server 保持一致） */
+// 文章列表查询：支持分页和筛选参数
 export const articleListService = (params) => {
-  return request.get("/article", { params: params });
+  return get("/api/article", params);
 };
 
-//添加文章
+// 添加文章
 export const articleAddService = (articleModel) => {
-  return request.post("/article", articleModel);
+  return post("/api/article", articleModel);
 };
 
-// 修改文章：前端会以 PUT /article 发送包含 id 的 body，mock server 需兼容
+// 修改文章：mock server 接受 PUT /article，body 中包含 id
 export const articleUpdateService = (articleModel) => {
-  return request.put("/article", articleModel);
+  return put("/api/article", articleModel);
 };
 
-// 删除文章：使用 params 传 id，兼容前端现有后端实现（或 mock 的 DELETE /article?id=）
+// 删除文章：使用查询参数传 id，兼容 mock 的 DELETE /article?id=...
 export const articleDeleteService = (id) => {
-  return request.delete("/article", { params: { id } });
+  return del(`/api/article?id=${id}`);
 };

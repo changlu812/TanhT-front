@@ -54,10 +54,13 @@ const getArticleList = async () => {
   let params = {
     pageNum: pageNum.value,
     pageSize: pageSize.value,
-    categoryId: categoryId.value ? Number(categoryId.value) : null, // 分类 ID
-    state: state.value || null, // 发布状态
-    title: title.value || null, // 文章标题
   };
+
+  // 仅在有值时追加筛选参数，避免将 null/'' 序列化为字符串 'null'
+  if (categoryId.value) params.categoryId = Number(categoryId.value);
+  if (state.value) params.state = state.value;
+  if (title.value) params.title = title.value;
+
   let result = await articleListService(params);
   // 渲染列表数据
   articles.value = result.data.items;
@@ -99,6 +102,7 @@ const articleModel = ref({
 });
 //图片上传
 import { Plus } from "@element-plus/icons-vue";
+import { request } from "@/utils/request";
 import { useTokenStore } from "@/stores/token.js";
 const tokenStore = useTokenStore();
 
@@ -107,6 +111,26 @@ const uploadSuccess = (result) => {
 
   articleModel.value.coverImg = result.data;
   console.log(result.data);
+};
+
+// 自定义上传，确保在静态发布（GitHub Pages）时走 mockAdapter
+const customUpload = async (option) => {
+  try {
+    const form = new FormData();
+    form.append("file", option.file);
+
+    const res = await request("/api/upload", {
+      method: "POST",
+      body: form,
+      headers: { Authorization: tokenStore.token },
+    });
+
+    option.onSuccess && option.onSuccess(res);
+    uploadSuccess(res);
+  } catch (err) {
+    option.onError && option.onError(err);
+    console.error("custom upload error", err);
+  }
 };
 
 // //添加文章
@@ -321,10 +345,8 @@ const saveArticle = async (stateStr) => {
           class="avatar-uploader"
           :auto-upload="true"
           :show-file-list="false"
-          action="/api/upload"
           name="file"
-          :headers="{ Authorization: tokenStore.token }"
-          :on-success="uploadSuccess"
+          :http-request="customUpload"
         >
           <img
             v-if="articleModel.coverImg"

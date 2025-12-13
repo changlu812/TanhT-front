@@ -1,6 +1,7 @@
 <script setup>
 /* 公共组件 */
 import { ref } from "vue";
+import { ElMessage } from "element-plus";
 import { User, Lock } from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import { useTokenStore } from "@/stores/token.js"; //导入token状态
@@ -60,12 +61,28 @@ const loginData = ref({
 });
 async function login() {
   try {
+    console.log("login() start", loginData.value);
     await loginForm.value.validate();
+    console.log("validation passed");
     let resultData = await userLoginService(loginData.value);
-    tokenStore.setToken(resultData.data); // 保存token
-    console.log(resultData);
+    console.log("login response", resultData);
+    if (!resultData || resultData.code !== 0) {
+      ElMessage.error(
+        resultData && resultData.message ? resultData.message : "登录失败"
+      );
+      return;
+    }
+    // server.cjs 返回 data 为 token 字符串；某些 mockData 返回嵌套对象，兼容处理
+    const tokenValue =
+      typeof resultData.data === "string"
+        ? resultData.data
+        : (resultData.data && resultData.data.token) || "";
+    tokenStore.setToken(tokenValue); // 保存token
+    console.log("token set", tokenValue);
     router.push("/"); // 登录成功跳转到首页
   } catch (error) {
+    console.error("login error", error);
+    ElMessage.error("登录过程出现异常");
     return;
   }
 }
@@ -122,7 +139,7 @@ async function login() {
           </el-button>
         </el-form-item>
         <el-form-item class="flex">
-          <el-link type="info" :underline="false" @click="isRegister = false">
+          <el-link type="info" underline="never" @click="isRegister = false">
             ← 返回
           </el-link>
         </el-form-item>
@@ -158,7 +175,7 @@ async function login() {
         <el-form-item class="flex">
           <div class="flex">
             <el-checkbox>记住我</el-checkbox>
-            <el-link type="primary" :underline="false">忘记密码？</el-link>
+            <el-link type="primary" underline="never">忘记密码？</el-link>
           </div>
         </el-form-item>
         <!-- 登录按钮 -->
@@ -172,7 +189,7 @@ async function login() {
           >
         </el-form-item>
         <el-form-item class="flex">
-          <el-link type="info" :underline="false" @click="isRegister = true">
+          <el-link type="info" underline="never" @click="isRegister = true">
             注册 →
           </el-link>
         </el-form-item>
